@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LVT - Local Video Translate</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+    <link rel="shortcut icon" type="image/svg+xml" href="/favicon.svg?v=2">
+    <meta name="theme-color" content="#0f7f75">
+    <script>
+      if (localStorage.getItem('lvt.theme') === 'dark') {
+        document.documentElement.classList.add('theme-dark');
+      }
+    </script>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body class="mode-single">
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Локальный перевод видео в субтитры</p>
+          <h1>LVT</h1>
+        </div>
+        <div class="topbar-actions">
+          <label class="theme-switch" title="Переключить ночной режим">
+            <input id="themeToggle" type="checkbox" aria-label="Ночной режим">
+            <span class="switch-track" aria-hidden="true"></span>
+            <span>Ночной режим</span>
+          </label>
+          <div class="status-pill" id="serverStatus">Локальный сервер</div>
+          <button id="shutdownProject" type="button" class="danger shutdown-button">Выключить проект</button>
+        </div>
+      </header>
+
+      <nav class="mode-switch" aria-label="Режим работы">
+        <button id="modeSingle" type="button" class="mode-card active" aria-pressed="true">
+          <span>Один файл</span>
+          <strong>Создать субтитры для одного видео</strong>
+        </button>
+        <button id="modeFolder" type="button" class="mode-card" aria-pressed="false">
+          <span>Папка с видео</span>
+          <strong>Обработать папку и собрать локальный плейлист</strong>
+        </button>
+      </nav>
+
+      <section class="workspace">
+        <section class="panel tools-panel">
+          <div class="panel-title">
+            <span class="step-number">1</span>
+            <div>
+              <h2>Локальные модели</h2>
+              <p>Укажите ffmpeg, whisper.cpp и рабочую папку для временных файлов.</p>
+            </div>
+          </div>
+
+          <div class="grid-two">
+            <label class="field">
+              <span>Рабочая папка LVT</span>
+              <input id="workDir" type="text" placeholder="C:\AI\LVT-Work">
+            </label>
+            <label class="field">
+              <span>FFmpeg</span>
+              <input id="ffmpegPath" type="text" placeholder="E:\AI\Tools\ffmpeg-release-essentials\ffmpeg-9.0.1-essentials_build\bin\ffmpeg.exe">
+            </label>
+          </div>
+
+          <label class="field">
+            <span>FFprobe для расчета времени</span>
+            <input id="ffprobePath" type="text" placeholder="E:\AI\Tools\ffmpeg-release-essentials\ffmpeg-9.0.1-essentials_build\bin\ffprobe.exe">
+          </label>
+
+          <div class="grid-two">
+            <label class="field">
+              <span>Где запускать Whisper</span>
+              <select id="whisperDevice">
+                <option value="gpu">Видеокарта NVIDIA</option>
+                <option value="cpu">Процессор</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Whisper CLI для выбранного режима</span>
+              <input id="whisperCommand" type="text" placeholder="E:\AI\Tools\whisper-bin-x64\whisper-cli.exe">
+            </label>
+          </div>
+
+          <div class="grid-two">
+            <label class="field">
+              <span>Файл модели Whisper</span>
+              <input id="whisperModel" type="text" placeholder="E:\AI\Models\ggml-large-v3-turbo.bin">
+            </label>
+            <label class="field">
+              <span>Python для Argos Translate и Silero TTS</span>
+              <input id="pythonCommand" type="text" placeholder="C:\Users\User\Documents\ChatGPT\LVT\.venv\Scripts\python.exe">
+            </label>
+          </div>
+
+          <div class="grid-two">
+            <label class="field">
+              <span>Движок перевода</span>
+              <select id="translationMode">
+                <option value="argos">Argos Translate: перевести субтитры</option>
+                <option value="none">Без перевода: только распознать речь</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Файл модели Silero TTS</span>
+              <input id="ttsModel" type="text" placeholder="E:\AI\Models\Silero\v5_5_ru.pt">
+            </label>
+          </div>
+
+          <div class="grid-two">
+            <label class="field">
+              <span>Голос Silero</span>
+              <select id="ttsSpeaker">
+                <option value="xenia">Xenia</option>
+                <option value="baya">Baya</option>
+                <option value="kseniya">Kseniya</option>
+                <option value="eugene">Eugene</option>
+                <option value="aidar">Aidar</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Устройство Silero</span>
+              <select id="ttsDevice">
+                <option value="cpu">Процессор</option>
+                <option value="cuda">Видеокарта CUDA</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="grid-two">
+            <label class="toggle align-end">
+              <input id="telegramEnabled" type="checkbox">
+              <span>Сообщать в Telegram после завершения</span>
+            </label>
+            <label class="field">
+              <span>Telegram Chat ID</span>
+              <input id="telegramChatId" type="text" placeholder="-1001234567890">
+            </label>
+          </div>
+
+          <label class="field">
+            <span>Telegram Bot Token</span>
+            <input id="telegramBotToken" type="password" autocomplete="off" placeholder="123456789:AA...">
+          </label>
+
+          <div class="inline-actions">
+            <button id="saveSettings" type="button" class="secondary">Сохранить настройки</button>
+            <button id="checkTools" type="button" class="primary">Проверить инструменты</button>
+          </div>
+
+          <div id="toolChecks" class="checks"></div>
+        </section>
+
+        <section class="panel single-source-panel single-only">
+          <div class="panel-title">
+            <span class="step-number">2</span>
+            <div>
+              <h2>Исходное видео</h2>
+              <p>Выберите видеофайл через системное окно.</p>
+            </div>
+          </div>
+
+          <div class="path-picker">
+            <label class="field grow">
+              <span>Выбранный видеофайл</span>
+              <input id="singlePath" type="text" readonly placeholder="Файл не выбран">
+            </label>
+            <button id="pickSingle" type="button" class="secondary">Выбрать видео</button>
+            <button id="scanSingle" type="button" class="primary">Добавить</button>
+          </div>
+        </section>
+
+        <section class="panel folder-source-panel folder-only">
+          <div class="panel-title">
+            <span class="step-number">2</span>
+            <div>
+              <h2>Папка с видео</h2>
+              <p>Видео из вложенных папок попадут в очередь в порядке путей.</p>
+            </div>
+          </div>
+
+          <div class="path-picker">
+            <label class="field grow">
+              <span>Выбранная папка</span>
+              <input id="folderPath" type="text" readonly placeholder="Папка не выбрана">
+            </label>
+            <button id="pickFolder" type="button" class="secondary">Выбрать папку</button>
+          </div>
+
+          <div class="grid-two">
+            <label class="field">
+              <span>Название локального плейлиста</span>
+              <input id="playlistTitle" type="text" placeholder="Название курса">
+            </label>
+            <label class="field">
+              <span>Как назвать видео в плейлисте</span>
+              <select id="namingMode">
+                <option value="original">Не переименовывать: оставить имя файла</option>
+                <option value="parent">Папка + видео: Модуль_Интро</option>
+                <option value="playlist">Плейлист + видео: Курс_Интро</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="inline-actions">
+            <label class="toggle">
+              <input id="recursiveScan" type="checkbox" checked>
+              <span>Искать во вложенных папках</span>
+            </label>
+            <button id="scanFolder" type="button" class="primary">Собрать очередь</button>
+          </div>
+        </section>
+
+        <section class="panel subtitles-panel">
+          <div class="panel-title">
+            <span class="step-number">3</span>
+            <div>
+              <h2>Субтитры</h2>
+              <p>Выберите язык, место сохранения и нужен ли файл с русской озвучкой.</p>
+            </div>
+          </div>
+
+          <div class="grid-two">
+            <label class="field">
+              <span>Язык оригинала</span>
+              <select id="sourceLang">
+                <option value="auto">Определить автоматически</option>
+                <option value="en">Английский</option>
+                <option value="ru">Русский</option>
+                <option value="de">Немецкий</option>
+                <option value="fr">Французский</option>
+                <option value="es">Испанский</option>
+                <option value="it">Итальянский</option>
+                <option value="tr">Турецкий</option>
+                <option value="zh">Китайский</option>
+                <option value="ja">Японский</option>
+                <option value="ko">Корейский</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Язык результата</span>
+              <select id="targetLang">
+                <option value="ru">Русский</option>
+                <option value="en">Английский</option>
+                <option value="de">Немецкий</option>
+                <option value="fr">Французский</option>
+                <option value="es">Испанский</option>
+                <option value="it">Итальянский</option>
+                <option value="tr">Турецкий</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="grid-two">
+            <label class="field">
+              <span>Что создать</span>
+              <select id="voiceoverMode">
+                <option value="none">Только субтитры</option>
+                <option value="silero">Субтитры + русская озвучка Silero, в папку Перевод</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Звук в итоговом видео</span>
+              <select id="audioMixMode">
+                <option value="overlay">Оригинал тише + русская озвучка</option>
+                <option value="replace">Заменить звук русской озвучкой</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="grid-two">
+            <label class="field">
+              <span>Где сохранить .vtt без озвучки</span>
+              <select id="outputMode">
+                <option value="work">В рабочей папке LVT</option>
+                <option value="sidecar">Рядом с исходным видео</option>
+              </select>
+            </label>
+            <label class="toggle align-end">
+              <input id="continueOnError" type="checkbox" checked>
+              <span>В папке продолжать после ошибки</span>
+            </label>
+          </div>
+
+          <label class="toggle">
+            <input id="retryFailedAfterBatch" type="checkbox">
+            <span>После партии повторить файлы с ошибкой один раз</span>
+          </label>
+        </section>
+
+        <section class="panel run-panel">
+          <div class="panel-title">
+            <span class="step-number">4</span>
+            <div>
+              <h2>Выполнение</h2>
+              <p>Очередь обрабатывается локально и по одному видео за раз.</p>
+            </div>
+          </div>
+
+          <div class="inline-actions">
+            <button id="startJob" type="button" class="primary">Создать результат</button>
+            <button id="cancelJob" type="button" class="secondary" disabled>Остановить после текущего</button>
+            <button id="stopJob" type="button" class="danger" disabled>Остановить сейчас</button>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress-line">
+              <span id="progressLabel">Ожидание</span>
+              <strong id="progressPercent">0%</strong>
+            </div>
+            <div class="progress-bar">
+              <div id="progressBar"></div>
+            </div>
+            <div id="jobTiming" class="job-timing" hidden>
+              <div>
+                <span>Прошло</span>
+                <strong id="elapsedTime">0 сек</strong>
+              </div>
+              <div>
+                <span>Осталось</span>
+                <strong id="remainingTime">пока считаю</strong>
+              </div>
+              <div>
+                <span>Завершение</span>
+                <strong id="finishTime">-</strong>
+              </div>
+            </div>
+          </div>
+
+          <div id="queueSummary" class="queue-summary">Очередь пуста</div>
+          <div id="queueList" class="queue-list"></div>
+        </section>
+
+        <section class="panel result-panel">
+          <div class="panel-title">
+            <span class="step-number">5</span>
+            <div>
+              <h2>Результат</h2>
+              <p>Выберите готовое видео, чтобы посмотреть его с субтитрами или русской озвучкой.</p>
+            </div>
+          </div>
+
+          <div class="result-empty" id="resultEmpty">
+            <span>Готовых результатов пока нет</span>
+          </div>
+
+          <video id="videoPlayer" controls playsinline hidden></video>
+          <div id="resultList" class="result-list"></div>
+        </section>
+      </section>
+
+      <section class="log-panel">
+        <div class="log-header">
+          <h2>Журнал</h2>
+          <button id="clearLog" type="button" class="ghost">Очистить</button>
+        </div>
+        <pre id="log"></pre>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
